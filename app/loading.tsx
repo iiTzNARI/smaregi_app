@@ -1,31 +1,70 @@
-// app/loading.tsx
 import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardHeader, CardContent } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHeader,
+  TableRow,
+  TableHead,
+} from "@/components/ui/table";
 
 export default function Loading() {
-  // 実際のレイアウトに合わせてスケルトンスクリーンを表示
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {Array.from({ length: 6 }).map((_, i) => (
-        <Card key={i}>
+    <div className="flex justify-center">
+      <div className="w-full max-w-2xl space-y-6 animate-pulse">
+        {/* 月間売上合計のスケルトン */}
+        <div className="flex items-center justify-center gap-4">
+          <Skeleton className="h-10 w-10" />
+          <Skeleton className="h-7 w-32" />
+          <Skeleton className="h-10 w-10" />
+        </div>
+
+        {/* 取引明細のスケルトン */}
+        <Card>
           <CardHeader>
             <Skeleton className="h-6 w-1/2" />
-            <Skeleton className="h-4 w-3/4" />
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div>
-                <Skeleton className="h-4 w-1/4 mb-2" />
-                <Skeleton className="h-8 w-1/2" />
-              </div>
-              <div>
-                <Skeleton className="h-4 w-1/4 mb-2" />
-                <Skeleton className="h-8 w-1/2" />
-              </div>
-            </div>
+            <Skeleton className="h-10 w-3/4" />
           </CardContent>
         </Card>
-      ))}
+
+        {/* 取引詳細のスケルトン */}
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-1/3" />
+            <Skeleton className="h-4 w-1/4" />
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>
+                    <Skeleton className="h-5 w-20" />
+                  </TableHead>
+                  <TableHead className="text-right">
+                    <Skeleton className="h-5 w-24" />
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {/* ダミーデータを表示 */}
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell>
+                      <Skeleton className="h-5 w-24" />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Skeleton className="h-5 w-20" />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
