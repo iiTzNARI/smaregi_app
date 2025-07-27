@@ -1,44 +1,40 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { Transaction } from "@/lib/types";
+import { getMonthlyTransactionsAction } from "@/app/actions";
 import { MonthSelector } from "./report/MonthSelector";
 import { SalesSummaryCard } from "./report/SalesSummaryCard";
 import { TransactionDetails } from "./report/TransactionDetails";
+import { ReportSkeleton } from "./report/ReportSkeleton";
 
-type MonthlyReportProps = {
-  transactions: Transaction[];
-};
+export const MonthlyReport = () => {
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [monthlyTransactions, setMonthlyTransactions] = useState<Transaction[]>(
+    []
+  );
+  const [isPending, startTransition] = useTransition();
 
-export const MonthlyReport = ({ transactions }: MonthlyReportProps) => {
-  const latestMonth =
-    transactions.length > 0
-      ? new Date(
-          transactions.sort(
-            (a, b) =>
-              new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime()
-          )[0].dateTime
-        )
-      : new Date();
-  const [currentDate, setCurrentDate] = useState(latestMonth);
-
-  // 日付が変更されたときのハンドラ
-  const handleDateChange = (date: Date) => {
-    setCurrentDate(date);
+  const fetchReportData = (date: Date) => {
+    startTransition(async () => {
+      const transactions = await getMonthlyTransactionsAction(date);
+      setMonthlyTransactions(transactions);
+    });
   };
 
-  const { monthlyTransactions, totalSales } = useMemo(() => {
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth();
+  useEffect(() => {
+    fetchReportData(currentDate);
+  }, []);
 
-    const filtered = transactions.filter((tx) => {
-      const txDate = new Date(tx.dateTime);
-      return txDate.getFullYear() === year && txDate.getMonth() === month;
-    });
+  const handleDateChange = (date: Date) => {
+    setCurrentDate(date);
+    fetchReportData(date);
+  };
 
-    const total = filtered.reduce((sum, tx) => sum + Number(tx.total), 0);
-    return { monthlyTransactions: filtered, totalSales: total };
-  }, [currentDate, transactions]);
+  const totalSales = monthlyTransactions.reduce(
+    (sum, tx) => sum + Number(tx.total),
+    0
+  );
 
   return (
     <div className="flex justify-center">
@@ -46,9 +42,17 @@ export const MonthlyReport = ({ transactions }: MonthlyReportProps) => {
         <MonthSelector
           currentDate={currentDate}
           onDateChange={handleDateChange}
+          isLoading={isPending}
         />
-        <SalesSummaryCard totalSales={totalSales} />
-        <TransactionDetails transactions={monthlyTransactions} />
+
+        {isPending ? (
+          <ReportSkeleton />
+        ) : (
+          <>
+            <SalesSummaryCard totalSales={totalSales} />
+            <TransactionDetails transactions={monthlyTransactions} />
+          </>
+        )}
       </div>
     </div>
   );

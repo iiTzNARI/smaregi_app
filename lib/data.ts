@@ -1,9 +1,14 @@
-// lib/data.ts
 import "server-only";
-import { Transaction, SmaregiSingleTransactionApiResponse } from "./types";
+import { Transaction, SmaregiTransactionListItem } from "./types";
 
-// 全ての取引データを取得する
-export const fetchAllTransactions = async (): Promise<Transaction[]> => {
+/**
+ * 指定された月の取引データをAPIから一括で取得する
+ * @param targetDate - 取得したい月を示すDateオブジェクト
+ * @returns {Promise<Transaction[]>} その月の取引データ配列
+ */
+export const fetchTransactionsForMonth = async (
+  targetDate: Date
+): Promise<Transaction[]> => {
   const contractId = process.env.SMAREGI_CONTRACT_ID;
   const accessToken = process.env.SMAREGI_ACCESS_TOKEN;
 
@@ -11,55 +16,69 @@ export const fetchAllTransactions = async (): Promise<Transaction[]> => {
     throw new Error("API credentials are not configured in .env.local");
   }
 
-  const allTransactions: Transaction[] = [];
-  let consecutiveErrors = 0;
-  const CONSECUTIVE_ERRORS_TO_STOP = 5;
-  const MAX_TRANSACTIONS_TO_CHECK = 1000;
+  const year = targetDate.getFullYear();
+  const month = targetDate.getMonth();
+  const dateFrom = new Date(year, month, 1);
+  const dateTo = new Date(year, month + 1, 0, 23, 59, 59); // 月末日の23:59:59
 
-  console.log("Fetching all transactions one by one...");
+  //  API用の形式にフォーマット
+  const to = formatDateForApi(dateTo);
+  const from = formatDateForApi(dateFrom);
 
-  for (
-    let transactionId = 1;
-    transactionId <= MAX_TRANSACTIONS_TO_CHECK;
-    transactionId++
-  ) {
-    if (consecutiveErrors >= CONSECUTIVE_ERRORS_TO_STOP) {
-      console.log("Stopping fetch loop.");
-      break;
+  const url =
+    `https://api.smaregi.dev/${contractId}/pos/transactions` +
+    `?transaction_date_time-from=${encodeURIComponent(from)}` +
+    `&transaction_date_time-to=${encodeURIComponent(to)}` +
+    `&limit=1000`;
+
+  console.log(`Fetching transactions for ${year}/${month + 1} from: ${url}`);
+
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      console.error(
+        `Failed to fetch transactions. Status: ${
+          response.status
+        }, Body: ${await response.text()}`
+      );
+      return [];
     }
-    //  「取引一覧取得」がなぜか使用できない
-    //  代わりに「取引取得」をすべての取引IDに対して実行している
-    const url = `https://api.smaregi.dev/${contractId}/pos/transactions/${transactionId}`;
 
-    try {
-      const response = await fetch(url, {
-        method: "GET",
-        headers: { Authorization: `Bearer ${accessToken}` },
-        cache: "no-store",
-      });
+    const transactionsFromApi =
+      (await response.json()) as SmaregiTransactionListItem[];
+    const allTransactions: Transaction[] = transactionsFromApi.map((tx) => ({
+      id: tx.transactionHeadId,
+      dateTime: tx.transactionDateTime,
+      total: tx.total,
+    }));
 
-      if (response.ok) {
-        const transaction =
-          (await response.json()) as SmaregiSingleTransactionApiResponse;
-        allTransactions.push({
-          id: transactionId,
-          dateTime: transaction.transactionDateTime,
-          total: transaction.total,
-        });
-        consecutiveErrors = 0;
-      } else {
-        consecutiveErrors++;
-      }
-
-      //  サーバー負荷軽減のためのタイムアウト
-      await new Promise((resolve) => setTimeout(resolve, 50));
-
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (error) {
-      consecutiveErrors++;
-    }
+    console.log(
+      `Fetched a total of ${allTransactions.length} transactions for ${year}/${
+        month + 1
+      }.`
+    );
+    return allTransactions;
+  } catch (error) {
+    console.error("An error occurred during API fetch:", error);
+    return [];
   }
+};
 
-  console.log(`Fetched a total of ${allTransactions.length} transactions.`);
-  return allTransactions;
+// API用に日本時間でフォーマット
+const formatDateForApi = (date: Date): string => {
+  const pad = (num: number) => String(num).padStart(2, "0");
+
+  const year = date.getFullYear();
+  const month = pad(date.getMonth() + 1);
+  const day = pad(date.getDate());
+  const hours = pad(date.getHours());
+  const minutes = pad(date.getMinutes());
+  const seconds = pad(date.getSeconds());
+
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}+09:00`;
 };
