@@ -1,13 +1,23 @@
 // components/report/DailyReport.tsx
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect, useTransition, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DateSelector } from "./DateSelector";
-import { getMonthlyTransactionsAction } from "@/app/actions";
+import { getDailyTransactionsAction } from "@/app/actions";
 import { Transaction } from "@/lib/types";
 import { formatCurrency } from "@/lib/utils";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
+// KPIカード用のコンポーネント
 const KpiCard = ({
   title,
   value,
@@ -32,26 +42,67 @@ const KpiCard = ({
   </Card>
 );
 
+// 時間帯別売上グラフ用のコンポーネント
+const HourlySalesChart = ({
+  data,
+}: {
+  data: { hour: string; total: number }[];
+}) => (
+  // divで囲み、横スクロールを可能にする
+  <div className="w-full overflow-x-auto">
+    <div style={{ width: "1200px" }}>
+      {" "}
+      {/* グラフ自体の幅を広げる */}
+      <ResponsiveContainer width="100%" height={300}>
+        <BarChart
+          data={data}
+          margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+        >
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="hour" />
+          <YAxis tickFormatter={(value) => `${value.toLocaleString()}円`} />
+          <Tooltip
+            formatter={(value: number) => [
+              value.toLocaleString() + "円",
+              "売上",
+            ]}
+          />
+          <Bar dataKey="total" fill="#ef4444" />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  </div>
+);
+
 export const DailyReport = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [monthlyTransactions, setMonthlyTransactions] = useState<Transaction[]>(
-    []
-  );
+  const [dailyTransactions, setDailyTransactions] = useState<Transaction[]>([]);
   const [isPending, startTransition] = useTransition();
 
-  // 日付が変更されるたびに、その月全体のデータを取得する
   useEffect(() => {
     startTransition(async () => {
-      const data = await getMonthlyTransactionsAction(currentDate);
-      setMonthlyTransactions(data);
+      const transactions = await getDailyTransactionsAction(currentDate);
+      setDailyTransactions(transactions);
     });
   }, [currentDate]);
 
-  // 月全体のデータから、選択された日のデータだけを絞り込む
-  const dailyTransactions = monthlyTransactions.filter((tx) => {
-    const txDate = new Date(tx.dateTime);
-    return txDate.getDate() === currentDate.getDate();
-  });
+  // 時間帯別データを計算するロジックを0時〜23時に変更
+  const hourlyData = useMemo(() => {
+    const hours = Array.from({ length: 24 }, (_, i) => i); // 0時から23時
+    const data: { hour: string; total: number }[] = hours.map((h) => ({
+      hour: `${h}時`,
+      total: 0,
+    }));
+
+    dailyTransactions.forEach((tx) => {
+      const hour = new Date(tx.dateTime).getHours();
+      // data配列のインデックスは時間と一致する
+      if (data[hour]) {
+        data[hour].total += Number(tx.total);
+      }
+    });
+    return data;
+  }, [dailyTransactions]);
 
   const totalSales = dailyTransactions.reduce(
     (sum, tx) => sum + Number(tx.total),
@@ -85,6 +136,16 @@ export const DailyReport = () => {
               unit="円"
             />
           </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>時間帯別 売上グラフ</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <HourlySalesChart data={hourlyData} />
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>💡 今日の分析とアクションプラン</CardTitle>

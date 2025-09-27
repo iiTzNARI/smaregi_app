@@ -5,6 +5,7 @@ import { fetchTransactionsByDateRange } from "@/lib/data";
 import { Transaction } from "@/lib/types";
 import { startOfWeek, endOfWeek } from "date-fns";
 
+// 月次レポート用のアクション（既存）
 export const getMonthlyTransactionsAction = async (
   date: Date
 ): Promise<Transaction[]> => {
@@ -21,24 +22,40 @@ export const getMonthlyTransactionsAction = async (
     return [];
   }
 };
-// ▼▼▼ 週次レポート用のアクションをここに追加 ▼▼▼
+
+// 週次レポート用のアクション（既存）
 export const getWeeklyTransactionsAction = async (
   date: Date
 ): Promise<Transaction[]> => {
   try {
-    // 渡された日付が含まれる週の始まりと終わりを計算
     const fromDate = startOfWeek(date, { weekStartsOn: 0 });
     const toDate = endOfWeek(date, { weekStartsOn: 0 });
-
-    // 0時0分0秒に設定
     fromDate.setHours(0, 0, 0, 0);
-    // 23時59分59秒に設定
     toDate.setHours(23, 59, 59, 999);
 
     const transactions = await fetchTransactionsByDateRange(fromDate, toDate);
     return transactions;
   } catch (error) {
     console.error("Server Action for weekly data failed:", error);
+    return [];
+  }
+};
+
+// ▼▼▼ 日次レポート用のアクションをここに追加 ▼▼▼
+export const getDailyTransactionsAction = async (
+  date: Date
+): Promise<Transaction[]> => {
+  try {
+    // 1日の始まりと終わりを計算
+    const fromDate = new Date(date);
+    fromDate.setHours(0, 0, 0, 0);
+    const toDate = new Date(date);
+    toDate.setHours(23, 59, 59, 999);
+
+    const transactions = await fetchTransactionsByDateRange(fromDate, toDate);
+    return transactions;
+  } catch (error) {
+    console.error("Server Action for daily data failed:", error);
     return [];
   }
 };
