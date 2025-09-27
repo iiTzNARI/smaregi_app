@@ -1,13 +1,22 @@
+// lib/data.ts
 import "server-only";
 import { Transaction, SmaregiTransactionListItem } from "./types";
 
-/**
- * 指定された月の取引データをAPIから一括で取得する
- * @param targetDate - 取得したい月を示すDateオブジェクト
- * @returns {Promise<Transaction[]>} その月の取引データ配列
- */
-export const fetchTransactionsForMonth = async (
-  targetDate: Date
+// API用に日付を "YYYY-MM-DDTHH:mm:ss+09:00" 形式にフォーマットする関数
+const formatDateForApi = (date: Date): string => {
+  const pad = (num: number) => String(num).padStart(2, "0");
+  const year = date.getFullYear();
+  const month = pad(date.getMonth() + 1);
+  const day = pad(date.getDate());
+  const hours = pad(date.getHours());
+  const minutes = pad(date.getMinutes());
+  const seconds = pad(date.getSeconds());
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}+09:00`;
+};
+
+export const fetchTransactionsByDateRange = async (
+  fromDate: Date,
+  toDate: Date
 ): Promise<Transaction[]> => {
   const contractId = process.env.SMAREGI_CONTRACT_ID;
   const accessToken = process.env.SMAREGI_ACCESS_TOKEN;
@@ -16,22 +25,17 @@ export const fetchTransactionsForMonth = async (
     throw new Error("API credentials are not configured in .env.local");
   }
 
-  const year = targetDate.getFullYear();
-  const month = targetDate.getMonth();
-  const dateFrom = new Date(year, month, 1);
-  const dateTo = new Date(year, month + 1, 0, 23, 59, 59); // 月末日の23:59:59
+  const to = formatDateForApi(toDate);
+  const from = formatDateForApi(fromDate);
 
-  //  API用の形式にフォーマット
-  const to = formatDateForApi(dateTo);
-  const from = formatDateForApi(dateFrom);
-
+  // パラメータ名をsnake_caseに修正
   const url =
     `https://api.smaregi.dev/${contractId}/pos/transactions` +
     `?transaction_date_time-from=${encodeURIComponent(from)}` +
     `&transaction_date_time-to=${encodeURIComponent(to)}` +
     `&limit=1000`;
 
-  console.log(`Fetching transactions for ${year}/${month + 1} from: ${url}`);
+  console.log(`[data.ts] Fetching transactions from: ${url}`);
 
   try {
     const response = await fetch(url, {
@@ -42,7 +46,7 @@ export const fetchTransactionsForMonth = async (
 
     if (!response.ok) {
       console.error(
-        `Failed to fetch transactions. Status: ${
+        `[data.ts] Failed to fetch. Status: ${
           response.status
         }, Body: ${await response.text()}`
       );
@@ -58,27 +62,11 @@ export const fetchTransactionsForMonth = async (
     }));
 
     console.log(
-      `Fetched a total of ${allTransactions.length} transactions for ${year}/${
-        month + 1
-      }.`
+      `[data.ts] Fetched ${allTransactions.length} transactions successfully.`
     );
     return allTransactions;
   } catch (error) {
-    console.error("An error occurred during API fetch:", error);
+    console.error("[data.ts] An error occurred during fetch:", error);
     return [];
   }
-};
-
-// API用に日本時間でフォーマット
-const formatDateForApi = (date: Date): string => {
-  const pad = (num: number) => String(num).padStart(2, "0");
-
-  const year = date.getFullYear();
-  const month = pad(date.getMonth() + 1);
-  const day = pad(date.getDate());
-  const hours = pad(date.getHours());
-  const minutes = pad(date.getMinutes());
-  const seconds = pad(date.getSeconds());
-
-  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}+09:00`;
 };
