@@ -2,77 +2,22 @@
 "use client";
 
 import { useState, useEffect, useTransition, useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DateSelector } from "./DateSelector";
-import { getDailyTransactionsAction } from "@/app/actions";
 import { Transaction } from "@/lib/types";
-import { formatCurrency } from "@/lib/utils";
+import { getDailyTransactionsAction } from "@/app/actions";
+import { DateSelector } from "./DateSelector";
+import { SalesSummaryCard } from "./SalesSummaryCard";
+import { TransactionDetails } from "./TransactionDetails";
+import { ReportSkeleton } from "./ReportSkeleton";
 import {
-  BarChart,
-  Bar,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
+  Tooltip as RechartsTooltip,
   ResponsiveContainer,
 } from "recharts";
-
-// KPIカード用のコンポーネント
-const KpiCard = ({
-  title,
-  value,
-  unit,
-}: {
-  title: string;
-  value: string;
-  unit: string;
-}) => (
-  <Card className="text-center">
-    <CardHeader>
-      <CardTitle className="text-base font-medium text-muted-foreground">
-        {title}
-      </CardTitle>
-    </CardHeader>
-    <CardContent>
-      <p className="text-4xl font-bold">
-        {value}
-        <span className="text-xl ml-1">{unit}</span>
-      </p>
-    </CardContent>
-  </Card>
-);
-
-// 時間帯別売上グラフ用のコンポーネント
-const HourlySalesChart = ({
-  data,
-}: {
-  data: { hour: string; total: number }[];
-}) => (
-  // divで囲み、横スクロールを可能にする
-  <div className="w-full overflow-x-auto">
-    <div style={{ width: "1200px" }}>
-      {" "}
-      {/* グラフ自体の幅を広げる */}
-      <ResponsiveContainer width="100%" height={300}>
-        <BarChart
-          data={data}
-          margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-        >
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="hour" />
-          <YAxis tickFormatter={(value) => `${value.toLocaleString()}円`} />
-          <Tooltip
-            formatter={(value: number) => [
-              value.toLocaleString() + "円",
-              "売上",
-            ]}
-          />
-          <Bar dataKey="total" fill="#ef4444" />
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
-  </div>
-);
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 export const DailyReport = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -86,82 +31,57 @@ export const DailyReport = () => {
     });
   }, [currentDate]);
 
-  // 時間帯別データを計算するロジックを0時〜23時に変更
-  const hourlyData = useMemo(() => {
-    const hours = Array.from({ length: 24 }, (_, i) => i); // 0時から23時
-    const data: { hour: string; total: number }[] = hours.map((h) => ({
-      hour: `${h}時`,
-      total: 0,
-    }));
+  // 0時〜23時までの時間軸データを生成
+  const hours = Array.from({ length: 24 }, (_, i) => ({
+    hour: `${i}時`,
+    total: 0,
+  }));
 
-    dailyTransactions.forEach((tx) => {
-      const hour = new Date(tx.dateTime).getHours();
-      // data配列のインデックスは時間と一致する
-      if (data[hour]) {
-        data[hour].total += Number(tx.total);
-      }
-    });
-    return data;
-  }, [dailyTransactions]);
+  // 取引データを時間ごとに集計
+  dailyTransactions.forEach((tx) => {
+    const dateObj = new Date(tx.transactionDateTime);
+    const hour = dateObj.getHours();
+    hours[hour].total += Number(tx.total);
+  });
 
   const totalSales = dailyTransactions.reduce(
     (sum, tx) => sum + Number(tx.total),
     0
   );
-  const customerCount = dailyTransactions.length;
-  const avgSalePerCustomer = customerCount > 0 ? totalSales / customerCount : 0;
 
   return (
-    <div className="space-y-6">
-      <DateSelector
-        currentDate={currentDate}
-        onDateChange={setCurrentDate}
-        isLoading={isPending}
-      />
-
-      {isPending ? (
-        <p className="text-center pt-10">読み込み中...</p>
-      ) : (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <KpiCard
-              title="売上高"
-              value={totalSales.toLocaleString()}
-              unit="円"
-            />
-            <KpiCard title="客数" value={customerCount.toString()} unit="人" />
-            <KpiCard
-              title="客単価"
-              value={Math.round(avgSalePerCustomer).toLocaleString()}
-              unit="円"
-            />
-          </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>時間帯別 売上グラフ</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <HourlySalesChart data={hourlyData} />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>💡 今日の分析とアクションプラン</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {customerCount > 0 ? (
-                <p>
-                  売上: {formatCurrency(totalSales)} / 客数: {customerCount}人
-                </p>
-              ) : (
-                <p>この日の取引データはありません。</p>
-              )}
-            </CardContent>
-          </Card>
-        </>
-      )}
+    <div className="flex justify-center">
+      <div className="w-full max-w-2xl space-y-6">
+        <DateSelector
+          currentDate={currentDate}
+          onDateChange={setCurrentDate}
+          isLoading={isPending}
+        />
+        {isPending ? (
+          <ReportSkeleton />
+        ) : (
+          <>
+            <SalesSummaryCard totalSales={totalSales} />
+            <Card>
+              <CardHeader>
+                <CardTitle>時間別 売上推移グラフ</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={hours}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="hour" />
+                    <YAxis />
+                    <RechartsTooltip />
+                    <Line type="monotone" dataKey="total" stroke="#8884d8" />
+                  </LineChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+            <TransactionDetails transactions={dailyTransactions} />
+          </>
+        )}
+      </div>
     </div>
   );
 };

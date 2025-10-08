@@ -2,10 +2,12 @@
 "use client";
 
 import { useState, useEffect, useTransition, useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { WeekSelector } from "./WeekSelector";
-import { getWeeklyTransactionsAction } from "@/app/actions";
 import { Transaction } from "@/lib/types";
+import { getWeeklyTransactionsAction } from "@/app/actions";
+import { WeekSelector } from "./WeekSelector";
+import { SalesSummaryCard } from "./SalesSummaryCard";
+import { TransactionDetails } from "./TransactionDetails";
+import { ReportSkeleton } from "./ReportSkeleton";
 import {
   BarChart,
   Bar,
@@ -15,43 +17,20 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { startOfWeek, addDays, format } from "date-fns";
-import { ja } from "date-fns/locale";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
-const KpiCard = ({
-  title,
-  value,
-  unit,
-}: {
-  title: string;
-  value: string;
-  unit: string;
-}) => (
-  <Card className="text-center">
-    <CardHeader>
-      <CardTitle className="text-base font-medium text-muted-foreground">
-        {title}
-      </CardTitle>
-    </CardHeader>
-    <CardContent>
-      <p className="text-3xl font-bold">
-        {value}
-        <span className="text-lg ml-1">{unit}</span>
-      </p>
-    </CardContent>
-  </Card>
-);
-
-const DailySalesChart = ({
+const DailyBarChart = ({
   data,
 }: {
-  data: { label: string; total: number }[];
+  data: { day: string; total: number }[];
 }) => (
   <ResponsiveContainer width="100%" height={300}>
     <BarChart data={data}>
       <CartesianGrid strokeDasharray="3 3" />
-      <XAxis dataKey="label" /> {/* 表示用のlabelキーを使用 */}
-      <YAxis tickFormatter={(value) => `${value.toLocaleString()}円`} />
+      <XAxis dataKey="day" />
+      <YAxis
+        tickFormatter={(value) => `${(value / 10000).toLocaleString()}万円`}
+      />
       <Tooltip
         formatter={(value: number) => [value.toLocaleString() + "円", "売上"]}
       />
@@ -74,68 +53,50 @@ export const WeeklyReport = () => {
     });
   }, [currentDate]);
 
-  // ▼▼▼ ここから修正 ▼▼▼
-  const dailyData = useMemo(() => {
-    const weekStart = startOfWeek(currentDate, { weekStartsOn: 0 });
-    // グラフの横軸ラベルとデータを初期化
-    const data = Array.from({ length: 7 }).map((_, i) => {
-      const date = addDays(weekStart, i);
-      return {
-        label: format(date, "M/d(E)", { locale: ja }), // "7/28(日)" のような形式
-        total: 0,
-      };
+  // グラフ用データ変換（曜日ごとに売上合計を集計）
+  const dailyTrendData = useMemo(() => {
+    const weekDays = ["日", "月", "火", "水", "木", "金", "土"];
+    const allWeekDays = weekDays.map((day) => ({ day, total: 0 }));
+
+    weeklyTransactions.forEach((tx) => {
+      const txDate = new Date(tx.transactionDateTime);
+      const dayIndex = txDate.getDay();
+      allWeekDays[dayIndex].total += Number(tx.total);
     });
 
-    // 売上データを各曜日に加算
-    weeklyTransactions.forEach((tx) => {
-      const dayIndex = new Date(tx.dateTime).getDay(); // 0 (日) ~ 6 (土)
-      if (data[dayIndex]) {
-        data[dayIndex].total += Number(tx.total);
-      }
-    });
-    return data;
-  }, [weeklyTransactions, currentDate]);
-  // ▲▲▲ ここまで修正 ▲▲▲
+    return allWeekDays;
+  }, [weeklyTransactions]);
 
   const totalSales = weeklyTransactions.reduce(
     (sum, tx) => sum + Number(tx.total),
     0
   );
-  const customerCount = weeklyTransactions.length;
 
   return (
-    <div className="space-y-6">
-      <WeekSelector
-        currentDate={currentDate}
-        onDateChange={setCurrentDate}
-        isLoading={isPending}
-      />
-      {isPending ? (
-        <p className="text-center pt-10">読み込み中...</p>
-      ) : (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <KpiCard
-              title="週間総売上"
-              value={totalSales.toLocaleString()}
-              unit="円"
-            />
-            <KpiCard
-              title="週間総客数"
-              value={customerCount.toString()}
-              unit="人"
-            />
-          </div>
-          <Card>
-            <CardHeader>
-              <CardTitle>曜日別 売上グラフ</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <DailySalesChart data={dailyData} />
-            </CardContent>
-          </Card>
-        </>
-      )}
+    <div className="flex justify-center">
+      <div className="w-full max-w-2xl space-y-6">
+        <WeekSelector
+          currentDate={currentDate}
+          onDateChange={setCurrentDate}
+          isLoading={isPending}
+        />
+        {isPending ? (
+          <ReportSkeleton />
+        ) : (
+          <>
+            <SalesSummaryCard totalSales={totalSales} />
+            <Card>
+              <CardHeader>
+                <CardTitle>曜日別 売上推移グラフ</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <DailyBarChart data={dailyTrendData} />
+              </CardContent>
+            </Card>
+            <TransactionDetails transactions={weeklyTransactions} />
+          </>
+        )}
+      </div>
     </div>
   );
 };

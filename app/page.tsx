@@ -1,10 +1,33 @@
+"use client";
 // app/page.tsx
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DailyReport } from "@/components/report/DailyReport";
 import { WeeklyReport } from "@/components/report/WeeklyReport";
 import { MonthlyReport } from "@/components/report/MonthlyReport"; // 新しいパスからインポート
+import { SmaregiLogin } from "../components/SmaregiLogin";
+
+import { getSessionToken } from "../lib/session";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
+  const [token, setToken] = useState<string | null>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    const sessionToken = getSessionToken();
+    setToken(sessionToken);
+    if (!sessionToken) {
+      router.replace("/login");
+    }
+  }, [router]);
+
+  if (!token) {
+    // 認証済みでなければ何も表示しない（リダイレクト）
+    return null;
+  }
+
   return (
     <div className="max-w-4xl mx-auto">
       <header className="mb-8 text-center">
@@ -15,7 +38,6 @@ export default function Home() {
           データは力！ライバルに差をつけろ！
         </p>
       </header>
-
       <Tabs defaultValue="daily" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="daily">日次レポート</TabsTrigger>

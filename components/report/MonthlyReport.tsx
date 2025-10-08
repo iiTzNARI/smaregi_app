@@ -53,26 +53,27 @@ export const MonthlyReport = () => {
     });
   }, [currentDate]);
 
-  const dailyTrendData = useMemo(() => {
-    const daysInMonth = new Date(
-      currentDate.getFullYear(),
-      currentDate.getMonth() + 1,
-      0
-    ).getDate();
-    const data = Array.from({ length: daysInMonth }, (_, i) => ({
-      day: `${i + 1}日`,
-      total: 0,
-    }));
+  // 月の日付リストを生成
+  const daysInMonth = new Date(
+    currentDate.getFullYear(),
+    currentDate.getMonth() + 1,
+    0
+  ).getDate();
+  const allDays = Array.from({ length: daysInMonth }, (_, i) => ({
+    day: `${i + 1}日`,
+    total: 0,
+  }));
 
-    monthlyTransactions.forEach((tx) => {
-      const dayIndex = new Date(tx.dateTime).getDate() - 1;
-      if (data[dayIndex]) {
-        data[dayIndex].total += Number(tx.total);
-      }
-    });
-    return data;
-  }, [monthlyTransactions, currentDate]);
+  // 取引データを日付ごとに集計
+  monthlyTransactions.forEach((tx) => {
+    const txDate = new Date(tx.transactionDateTime);
+    const dayIndex = txDate.getDate() - 1;
+    if (allDays[dayIndex]) {
+      allDays[dayIndex].total += Number(tx.total);
+    }
+  });
 
+  // グラフ用データとして allDays を使う
   const totalSales = monthlyTransactions.reduce(
     (sum, tx) => sum + Number(tx.total),
     0
@@ -96,7 +97,7 @@ export const MonthlyReport = () => {
                 <CardTitle>日別 売上推移グラフ</CardTitle>
               </CardHeader>
               <CardContent>
-                <DailyTrendChart data={dailyTrendData} />
+                <DailyTrendChart data={allDays} />
               </CardContent>
             </Card>
             <TransactionDetails transactions={monthlyTransactions} />

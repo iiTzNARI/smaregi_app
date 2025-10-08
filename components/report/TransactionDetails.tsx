@@ -38,9 +38,14 @@ export const TransactionDetails = ({
             </TableHeader>
             <TableBody>
               {transactions.map((tx) => (
-                <TableRow key={tx.id}>
+                <TableRow key={`${tx.id}-${tx.transactionDateTime}`}>
                   <TableCell>
-                    {new Date(tx.dateTime).toLocaleDateString("ja-JP")}
+                    {(() => {
+                      const date = new Date(tx.transactionDateTime);
+                      return isNaN(date.getTime())
+                        ? "不明"
+                        : date.toLocaleDateString("ja-JP");
+                    })()}
                   </TableCell>
                   <TableCell className="text-right font-medium">
                     {formatCurrency(tx.total)}
