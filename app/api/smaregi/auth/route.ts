@@ -27,7 +27,6 @@ export async function GET(req: NextRequest) {
     redirect_uri: process.env.NEXT_PUBLIC_SMAREGI_REDIRECT_URI!,
   };
   console.log("[smaregi/auth] token request body:", bodyParams);
-  // const tokenRes = await fetch('https://id.smaregi.dev/token', {
   const tokenRes = await fetch("https://id.smaregi.dev/authorize/token", {
     method: "POST",
     headers: {

@@ -1,7 +1,7 @@
 // components/report/DailyReport.tsx
 "use client";
 
-import { useState, useEffect, useTransition, useMemo } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { Transaction } from "@/lib/types";
 import { getDailyTransactionsAction } from "@/app/actions";
 import { DateSelector } from "./DateSelector";

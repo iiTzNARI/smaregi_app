@@ -4,7 +4,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DailyReport } from "@/components/report/DailyReport";
 import { WeeklyReport } from "@/components/report/WeeklyReport";
 import { MonthlyReport } from "@/components/report/MonthlyReport"; // 新しいパスからインポート
-import { SmaregiLogin } from "../components/SmaregiLogin";
 
 import { getSessionToken } from "../lib/session";
 
