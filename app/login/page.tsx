@@ -1,10 +1,11 @@
 "use client";
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { getSessionToken } from "@/lib/session";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { CommonHeader } from "@/components/CommonHeader";
 
-// PKCE: code_verifier生成
 function generateCodeVerifier(length = 64) {
   const chars =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~";
@@ -15,7 +16,6 @@ function generateCodeVerifier(length = 64) {
   return verifier;
 }
 
-// PKCE: code_challenge生成（SHA256→Base64URL）
 async function generateCodeChallenge(codeVerifier: string) {
   const encoder = new TextEncoder();
   const data = encoder.encode(codeVerifier);
@@ -28,6 +28,18 @@ async function generateCodeChallenge(codeVerifier: string) {
 }
 
 export default function LoginPage() {
+  const router = useRouter();
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    const token = getSessionToken();
+    if (token) {
+      router.replace("/");
+    } else {
+      setChecking(false);
+    }
+  }, [router]);
+
   const handleLogin = async () => {
     const codeVerifier = generateCodeVerifier();
     window.sessionStorage.setItem("smaregi_code_verifier", codeVerifier);
@@ -42,6 +54,11 @@ export default function LoginPage() {
       `&code_challenge_method=S256`;
     window.location.href = SMAREGI_AUTH_URL;
   };
+
+  if (checking) {
+    // app/loading.tsxが自動で表示されるため、ここでは何も返さない
+    return null;
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center bg-background">
