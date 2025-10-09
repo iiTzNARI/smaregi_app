@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
     client_secret: process.env.SMAREGI_CLIENT_SECRET!,
     redirect_uri: process.env.NEXT_PUBLIC_SMAREGI_REDIRECT_URI!,
   };
-  console.log("[smaregi/auth] token request body:", bodyParams);
+
   const tokenRes = await fetch("https://id.smaregi.dev/authorize/token", {
     method: "POST",
     headers: {
@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
   });
 
   const tokenJson = await tokenRes.json();
-  console.log("[smaregi/auth] token response:", tokenJson);
+
   if (!tokenRes.ok) {
     return NextResponse.json(
       { error: "アクセストークン取得失敗", detail: tokenJson },
