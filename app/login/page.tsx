@@ -1,5 +1,7 @@
 "use client";
 import React from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 // PKCE: code_verifier生成
 function generateCodeVerifier(length = 64) {
@@ -41,30 +43,29 @@ export default function LoginPage() {
   };
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        marginTop: "80px",
-      }}
-    >
-      <h1>スマレジ売上アプリ ログイン</h1>
-      <button
-        onClick={handleLogin}
-        style={{
-          padding: "12px 32px",
-          fontSize: "1.2rem",
-          background: "#0070f3",
-          color: "#fff",
-          border: "none",
-          borderRadius: "8px",
-          cursor: "pointer",
-          marginTop: "32px",
-        }}
-      >
-        スマレジでログイン
-      </button>
+    <div className="min-h-screen flex flex-col items-center bg-background">
+      <header className="w-full py-8 text-center">
+        <h1 className="text-3xl md:text-4xl font-bold">
+          🍜 俺のラーメン 売上分析ダッシュボード
+        </h1>
+        <p className="text-muted-foreground mt-2">
+          データは力！ライバルに差をつけろ！
+        </p>
+      </header>
+      <Card className="w-full max-w-md mt-0">
+        <CardHeader>
+          <CardTitle className="text-center">スマレジ売上アプリ ログイン</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col items-center">
+          <Button
+            size="lg"
+            className="mt-6 w-full"
+            onClick={handleLogin}
+          >
+            スマレジでログイン
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 }
