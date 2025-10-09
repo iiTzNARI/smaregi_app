@@ -2,6 +2,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { CommonHeader } from "@/components/CommonHeader";
 
 // PKCE: code_verifier生成
 function generateCodeVerifier(length = 64) {
@@ -44,24 +45,15 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex flex-col items-center bg-background">
-      <header className="w-full py-8 text-center">
-        <h1 className="text-3xl md:text-4xl font-bold">
-          🍜 俺のラーメン 売上分析ダッシュボード
-        </h1>
-        <p className="text-muted-foreground mt-2">
-          データは力！ライバルに差をつけろ！
-        </p>
-      </header>
-      <Card className="w-full max-w-md mt-0">
+      <CommonHeader />
+      <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-center">スマレジ売上アプリ ログイン</CardTitle>
+          <CardTitle className="text-center">
+            スマレジ売上アプリ ログイン
+          </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col items-center">
-          <Button
-            size="lg"
-            className="mt-6 w-full"
-            onClick={handleLogin}
-          >
+          <Button size="lg" className="mt-6 w-full" onClick={handleLogin}>
             スマレジでログイン
           </Button>
         </CardContent>

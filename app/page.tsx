@@ -3,12 +3,13 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DailyReport } from "@/components/report/DailyReport";
 import { WeeklyReport } from "@/components/report/WeeklyReport";
-import { MonthlyReport } from "@/components/report/MonthlyReport"; // 新しいパスからインポート
+import { MonthlyReport } from "@/components/report/MonthlyReport";
 
 import { getSessionToken } from "../lib/session";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { CommonHeader } from "@/components/CommonHeader";
 
 export default function Home() {
   const [token, setToken] = useState<string | null>(null);
@@ -29,14 +30,7 @@ export default function Home() {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <header className="mb-8 text-center">
-        <h1 className="text-3xl md:text-4xl font-bold">
-          🍜 俺のラーメン 売上分析ダッシュボード
-        </h1>
-        <p className="text-muted-foreground mt-2">
-          データは力！ライバルに差をつけろ！
-        </p>
-      </header>
+      <CommonHeader />
       <Tabs defaultValue="daily" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="daily">日次レポート</TabsTrigger>
