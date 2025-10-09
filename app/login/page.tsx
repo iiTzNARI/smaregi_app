@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { getSessionToken } from "@/lib/session";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { CommonHeader } from "@/components/CommonHeader";
+// import { CommonHeader } from "@/components/CommonHeader";
 
 function generateCodeVerifier(length = 64) {
   const chars =
@@ -62,7 +62,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex flex-col items-center bg-background">
-      <CommonHeader />
+      {/* <CommonHeader /> */}
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="text-center">
